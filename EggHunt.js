@@ -54,12 +54,38 @@ export class EggHunt {
   
         
         //Step 4: create square data
-        const corner1 = [-10, 0, 10]
-        const corner2 = [-10,0, -10]
+        const corner1 = [-10, 0, -10]
+        const corner2 = [10,0, 10]
         const corner3 = [10, 0, -10]
-        const corner4 = [10, 0, 10]
-        const squarePositionsData = [corner1[0], corner1[1], corner1[2], corner2[0], corner2[1], corner2[2], corner3[0], corner3[1], corner3[2], corner4[0], corner4[1], corner4[2]]
-        const squareColorsData = [0,1,0,0,1,0,0,1,0,0,1,0]
+        const corner4 = [-10, 0, 10]
+        
+        
+//        const squarePositionsData = [corner1[0], corner1[1], corner1[2], corner2[0], corner2[1], corner2[2], corner3[0], corner3[1], corner3[2], corner4[0], corner4[1], corner4[2]]
+//        const squareColorsData = [0,1,0,0,1,0,0,1,0,0,1,0]
+        
+        
+        let squarePositionsData = []
+        let squareColorsData = []
+        
+        
+        //triangle 1
+        squarePositionsData.push(corner1[0], corner1[1], corner1[2],
+                                  corner3[0], corner3[1], corner3[2],
+                                  corner2[0], corner2[1], corner2[2])
+        
+        //triangle 2
+        squarePositionsData.push(corner1[0], corner1[1], corner1[2],
+                                  corner4[0], corner4[1], corner4[2],
+                                  corner2[0], corner2[1], corner2[2])
+        
+        
+        squareColorsData.push(0,1,0)
+        squareColorsData.push(0,1,0) 
+        squareColorsData.push(0,1,0) 
+        squareColorsData.push(0,1,0) 
+        squareColorsData.push(0,1,0) 
+        squareColorsData.push(0,1,0) 
+
         
         // Step 4b. Ship the data
         
@@ -216,6 +242,7 @@ export class EggHunt {
         
         
     }
+    
     shipTransform(gl, program, projectionTransform, viewTransform, modelTransform){ 
          gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uPerspectiveTransform'), false, projectionTransform);
         gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uViewTransform'), false, viewTransform);
