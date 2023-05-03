@@ -85,6 +85,19 @@ export class EggHunt {
         squareColorsData.push(0,1,0) 
         squareColorsData.push(0,1,0) 
         squareColorsData.push(0,1,0) 
+        
+        
+        // also push normals, have to do one for each vertex, so should be 6 pushes of 3 vals 
+        
+//        const squareNormals = []
+//        //triangle 1 
+//        // first vertex faces out
+//        squareNormals.push(Math.cos(theta), 0, Math.sin(theta));
+//        // second vertex faces up
+//        squareNormals.push(0, 1, 0);
+//        // third vertex faces out
+//        squareNormals.push(Math.cos(thetaNext), 0, Math.sin(thetaNext));
+//        
 
         
         // Step 4b. Ship the data
@@ -93,6 +106,13 @@ export class EggHunt {
         square.shipStandardAttributes(gl, program) 
         square.bunnyCenter[2] = -10
         
+//        square.bunnyNormalsBuffer = gl.createBuffer();
+//        square.bunnyNormalsMemoryID = gl.getAttribLocation(program, 'aVertexNormal');
+//        gl.bindBuffer(gl.ARRAY_BUFFER, square.bunnyNormalsBuffer);
+//        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squareNormals), gl.STATIC_DRAW);
+//        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+//        
+//        
         
         this.update();
         
@@ -183,20 +203,36 @@ export class EggHunt {
         square.draw(gl)
           
     }
-    
+    // need to pass the point, in world coordinates
+     // need to pass the normal, after transform, use 0 for w so we don't translate it
+    // the camera position is obtained by negating the 4th column of uViewTransform
+
     compileBasicProgram(gl) {
         
         const shaderProgram = gl.createProgram();
         const vertexShaderCode = `#version 300 es
         precision mediump float;
+        in vec3 aVertexNormal;
         in vec3 aVertexPosition;
         in vec3 aVertexColor;
         uniform mat4 uPerspectiveTransform; 
         uniform mat4 uViewTransform;
         uniform mat4 uModelTransform;
         out vec3 color;
+        out vec3 pt;
+        out vec3 eye;
+        out vec3 n;
         void main(void) {
+
             color = aVertexColor;
+            
+            pt = vec3(uModelTransform * vec4(aVertexPosition, 0.0)); 
+            n = vec3(uModelTransform * vec4(aVertexNormal, 1.0));
+
+
+            eye = -vec3(uViewTransform * vec4(0.0, 0.0, 0.0, 1.0));
+
+
             vec4 homogenized = vec4(aVertexPosition, 1.0);
             gl_Position = uPerspectiveTransform * uViewTransform * uModelTransform * homogenized;
         }
@@ -215,8 +251,30 @@ export class EggHunt {
         precision mediump float;
         out vec4 FragColor;
         in vec3 color;
+        in vec3 n;
+        in vec3 pt;
+        in vec3 eye;
         void main(void) {
-            FragColor = vec4(color.x, color.y, color.z, 1.0);
+            vec3 light1 = vec3(0.0, 1.5, 0.0);
+            vec3 t1 = light1 - pt;
+            float m1 = dot(t1,n) / (length(n)* length(t1));
+
+            vec3 light2 = vec3(1.0, 1.5, 0.0);
+            vec3 t2 = light2 - pt;
+            float m2 = dot(t2,n) / (length(n)* length(t2));
+
+
+            vec3 light3 = vec3(2.0, 1.5, 1.0);
+            vec3 t3 = light3 - pt;
+            float m3 = dot(t3,n) / (length(n)* length(t3));
+
+            
+//            vec3 m1_color = (.2+m1)*color.xyz
+//            vec3 m2_color = (.2+m2)*color.xyz
+//            vec3 m3_color = (.2+m3)*color.xyz
+            vec3 final_color = (.2+m1)*color.xyz + (.2+m2)*color.xyz + (.2+m3)*color.xyz;
+
+            FragColor = vec4(final_color, 1.0);
         }
         `;
     
@@ -262,10 +320,13 @@ class TriangleMesh {
         this.bunnyColorsData = colorsData //convert to typed array
         this.bunnyColorsBuffer = null;
         this.bunnyColorsMemoryID = null;
+//        this.bunnyNormals = [];
+//        this.bunnyNormalsBuffer = null;
+//        this.bunnyNormalsMemoryID = null;
     }
     
     
-    shipStandardAttributes(gl, program) {
+    shipStandardAttributes(gl, program, n) {
         this.bunnyPositionsBuffer = gl.createBuffer();
         this.bunnyPositionsMemoryID = gl.getAttribLocation(program, 'aVertexPosition');
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyPositionsBuffer);
