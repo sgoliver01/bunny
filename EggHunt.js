@@ -13,6 +13,13 @@ export class EggHunt {
         this.cameraX = 0;
         this.cameraY = .5;
         this.cameraZ = -5;
+        
+        
+        
+        
+        
+        
+        
         // global drawing variables
       
     
@@ -58,11 +65,7 @@ export class EggHunt {
         const corner2 = [10,0, 10]
         const corner3 = [10, 0, -10]
         const corner4 = [-10, 0, 10]
-        
-        
-//        const squarePositionsData = [corner1[0], corner1[1], corner1[2], corner2[0], corner2[1], corner2[2], corner3[0], corner3[1], corner3[2], corner4[0], corner4[1], corner4[2]]
-//        const squareColorsData = [0,1,0,0,1,0,0,1,0,0,1,0]
-        
+    
         
         let squarePositionsData = []
         let squareColorsData = []
@@ -89,7 +92,9 @@ export class EggHunt {
         
         // also push normals, have to do one for each vertex, so should be 6 pushes of 3 vals 
         
-//        const squareNormals = []
+        
+//        
+//        let squareNormals = []
 //        //triangle 1 
 //        // first vertex faces out
 //        squareNormals.push(Math.cos(theta), 0, Math.sin(theta));
@@ -97,14 +102,15 @@ export class EggHunt {
 //        squareNormals.push(0, 1, 0);
 //        // third vertex faces out
 //        squareNormals.push(Math.cos(thetaNext), 0, Math.sin(thetaNext));
-//        
+        
 
+        const squareNormalsData = [0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0];
         
         // Step 4b. Ship the data
         
-        square = new TriangleMesh(squarePositionsData, squareColorsData);
+        square = new TriangleMesh(squarePositionsData,squareNormalsData, squareColorsData); 
         square.shipStandardAttributes(gl, program) 
-        square.bunnyCenter[2] = -10
+//        square.bunnyCenter[2] = -10
         
 //        square.bunnyNormalsBuffer = gl.createBuffer();
 //        square.bunnyNormalsMemoryID = gl.getAttribLocation(program, 'aVertexNormal');
@@ -154,9 +160,7 @@ export class EggHunt {
             // moving camera backward
             this.cameraZ += .25;
         }
-        
-        
-        
+ 
     }
     
     draw(square) {
@@ -226,11 +230,13 @@ export class EggHunt {
 
             color = aVertexColor;
             
-            pt = vec3(uModelTransform * vec4(aVertexPosition, 0.0)); 
-            n = vec3(uModelTransform * vec4(aVertexNormal, 1.0));
+            pt = vec3(uModelTransform * vec4(aVertexPosition, 1.0));
+            
+            mat4 inverseModelMatrix = transpose(inverse(uModelTransform));
+            n = vec3(inverseModelMatrix * vec4(aVertexNormal, 0.0));
 
 
-            eye = -vec3(uViewTransform * vec4(0.0, 0.0, 0.0, 1.0));
+            eye = vec3(uViewTransform * vec4(0.0, 0.0, 0.0, 1.0));
 
 
             vec4 homogenized = vec4(aVertexPosition, 1.0);
@@ -255,24 +261,26 @@ export class EggHunt {
         in vec3 pt;
         in vec3 eye;
         void main(void) {
-            vec3 light1 = vec3(0.0, 1.5, 0.0);
+            vec3 light1 = vec3(-3.0, 1.5, 3.0);
             vec3 t1 = light1 - pt;
             float m1 = dot(t1,n) / (length(n)* length(t1));
+            if (m1 < 0.0) { m1 = 0.0; }
 
-            vec3 light2 = vec3(1.0, 1.5, 0.0);
+
+            vec3 light2 = vec3(0.0, 1.5, 0.0);
             vec3 t2 = light2 - pt;
             float m2 = dot(t2,n) / (length(n)* length(t2));
+            if (m2 < 0.0) { m2 = 0.0; }
 
-
-            vec3 light3 = vec3(2.0, 1.5, 1.0);
+            vec3 light3 = vec3(3.0, 1.5, 3.0);
             vec3 t3 = light3 - pt;
             float m3 = dot(t3,n) / (length(n)* length(t3));
-
+            if (m3 < 0.0) { m3 = 0.0; }
             
-//            vec3 m1_color = (.2+m1)*color.xyz
-//            vec3 m2_color = (.2+m2)*color.xyz
-//            vec3 m3_color = (.2+m3)*color.xyz
-            vec3 final_color = (.2+m1)*color.xyz + (.2+m2)*color.xyz + (.2+m3)*color.xyz;
+
+            vec3 final_color = (.2+m1)*color.xyz +
+                               (.2+m2)*color.xyz + 
+                               (.2+m3)*color.xyz;
 
             FragColor = vec4(final_color, 1.0);
         }
