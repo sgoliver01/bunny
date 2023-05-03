@@ -1,22 +1,59 @@
+import { mat4, vec4, vec3 } from 'https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/+esm'
+// can download as glMatrix.js for offline use if needed
+
+let gl;
+let program;
+
 export class EggHunt {
     constructor(canvas, keyMap) {
         // save canvas and keyMap as members
         this.canvas = canvas;
         this.keyMap = keyMap;
-        
-        // save canvas context as member
-        this.ctx = canvas.getContext('2d');
-        
+        // global camera variables
+        this.cameraX = 0;
+        this.cameraY = .5;
+        this.cameraZ = -5;
+        // global drawing variables
+      
+    
     }
     
-    let square;
     
-    init() {
-        // set size of canvas
-        canvas.width = 240;
-        canvas.height = 240;
+    
+    mainLoop() {
         
-        //compute vertices for the square
+        // Compute the FPS
+        // First get #milliseconds since previous draw
+        const elapsed = performance.now() - this.prevDraw;
+
+        if (elapsed < 1000/60) {
+            return;
+        }
+        // 1000 seconds = elapsed * fps. So fps = 1000/elapsed
+        const fps = 1000 / elapsed;
+        // Write the FPS in a <p> element.
+        document.getElementById('fps').innerHTML = fps;
+        
+        
+        let square;
+        
+        //Step 1: initialize canvas
+      //  this.canvas = document.getElementById('demo');
+        this.canvas.width = 640;
+        this.canvas.height = 480;
+        
+        // Step 2. initialize webgl context
+        gl = this.canvas.getContext('webgl2', {antialias: false} );
+        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        
+    
+        // Step 3. one-time compile the basic shader program
+        program = this.compileBasicProgram(gl);
+        gl.useProgram(program);
+        
+  
+        
+        //Step 4: create square data
         const corner1 = [-10, 0, 10]
         const corner2 = [-10,0, -10]
         const corner3 = [10, 0, -10]
@@ -24,39 +61,237 @@ export class EggHunt {
         const squarePositionsData = [corner1[0], corner1[1], corner1[2], corner2[0], corner2[1], corner2[2], corner3[0], corner3[1], corner3[2], corner4[0], corner4[1], corner4[2]]
         const squareColorsData = [0,1,0,0,1,0,0,1,0,0,1,0]
         
-        this.floor = new TriangleMesh(squarePositionsData, squareColorsData)
+        // Step 4b. Ship the data
+        
+        square = new TriangleMesh(squarePositionsData, squareColorsData);
+        square.shipStandardAttributes(gl, program) 
+        square.bunnyCenter[2] = -10
         
         
+        this.update();
         
-    }
-    
-    mainLoop() {
+        // Step 5. call draw() repeatedly
+        setInterval(this.draw(square), 0);
+
+        
+
+ 
+        // Save the value of performance.now() for FPS calculation
+        this.prevDraw = performance.now();
         
     }
     
     
     update() {
         
+         if (this.keyMap['w']) {
+            // move the camera up
+            this.cameraY += .25;
+        }
+        else if (this.keyMap['s']) {
+            // move the camera down
+            this.cameraY -= .25;
+        }
+        else if (this.keyMap['a']) {
+            // moving camera left
+            this.cameraX -= .25;
+        }
+        else if (this.keyMap['d']) {
+            // moving camera right
+            this.cameraX += .25;
+        }
+        else if (this.keyMap['i']) {
+            // moving camera forward
+            this.cameraZ -= .25;
+        }
+        else if (this.keyMap['k']) {
+            // moving camera backward
+            this.cameraZ += .25;
+        }
+        
         
         
     }
     
-    draw() {
-       // this.floor.draw()
+    draw(square) {
+        
+//        document.getElementById('cameraPos').innerHTML = `Camera (${this.cameraX},${this.cameraY},${this.cameraZ})`;
+    
+        // clear canvas, reset buffers, enable depth test
+        
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.enable(gl.DEPTH_TEST);
+    
+//        // updates (rotating the tent slightly)
+//        tent.tentRotateY += 0.01;
+    
+        // Now draw the tent:
+        // Step 1. Prepare perspective and view matrices
+        const perspectiveTransform = mat4.create();
+        mat4.perspective(
+            perspectiveTransform, // where to store the result
+            Math.PI/2, // "vertical field of view"
+            1, // "aspect ratio"
+            0.1, // distance to near plane
+            1000 // distance to far plane
+        );
+    
+        // use mat4.lookAt() for the view matrix
+        const viewTransform = mat4.create();
+        mat4.lookAt(
+            viewTransform, // where to store the result
+            vec3.fromValues(this.cameraX, this.cameraY, this.cameraZ), // camera position
+            vec3.fromValues(square.bunnyCenter[0], square.bunnyCenter[1], square.bunnyCenter[2]), // camera target
+            vec3.fromValues(0, 1, 0), // up vector
+        );
+    
+        // Step 2. Prepare the model matrix
+        const modelTransform = square.getModelTransform()
+    
+        // Step 3. Ship all the transforms
+        this.shipTransform(gl, program, perspectiveTransform, viewTransform, modelTransform);
+    
+        // Step 4. 
+        
+        square.draw(gl)
+          
+    }
+    
+    compileBasicProgram(gl) {
+        
+        const shaderProgram = gl.createProgram();
+        const vertexShaderCode = `#version 300 es
+        precision mediump float;
+        in vec3 aVertexPosition;
+        in vec3 aVertexColor;
+        uniform mat4 uPerspectiveTransform; 
+        uniform mat4 uViewTransform;
+        uniform mat4 uModelTransform;
+        out vec3 color;
+        void main(void) {
+            color = aVertexColor;
+            vec4 homogenized = vec4(aVertexPosition, 1.0);
+            gl_Position = uPerspectiveTransform * uViewTransform * uModelTransform * homogenized;
+        }
+        `;
+        const vertexShaderObject = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShaderObject, vertexShaderCode);
+        gl.compileShader(vertexShaderObject);
+    
+        // good idea to check that it compiled successfully
+        if (!gl.getShaderParameter(vertexShaderObject, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(vertexShaderObject));
+        }
+    
+        // next, the fragment shader code
+        const fragmentShaderCode = `#version 300 es
+        precision mediump float;
+        out vec4 FragColor;
+        in vec3 color;
+        void main(void) {
+            FragColor = vec4(color.x, color.y, color.z, 1.0);
+        }
+        `;
+    
+        // send this fragment shader source code to the GPU
+        const fragmentShaderObject = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShaderObject, fragmentShaderCode);
+    
+        // tell GPU to compile it
+        gl.compileShader(fragmentShaderObject);
+    
+        // good idea to check that it compiled successfully
+        if (!gl.getShaderParameter(fragmentShaderObject, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(fragmentShaderObject));
+        }
+    
+        // attach each of the shaders to the shader program we created earlier
+        gl.attachShader(shaderProgram, vertexShaderObject);
+        gl.attachShader(shaderProgram, fragmentShaderObject);
+    
+        // tell GPU to "link" and "use" our program
+        gl.linkProgram(shaderProgram);
+        return shaderProgram;
+        
         
     }
+    shipTransform(gl, program, projectionTransform, viewTransform, modelTransform){ 
+         gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uPerspectiveTransform'), false, projectionTransform);
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uViewTransform'), false, viewTransform);
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uModelTransform'), false, modelTransform);
+    
+    }
+    
 }
 
 class TriangleMesh {
     constructor(positionsData, colorsData) {
-        let bunnyRotateY = new vec3.fromValues(0,0,0)
-        let bunnyCenter = new vec3.fromValues(0,0,0)
-        let bunnyPositionsData = positionsData //convert to typed array
-        let bunnyPositionsBuffer = null;
-        let bunnyPositionsMemoryID = null;
-        let bunnyColorsData = colorsData //convert to typed array
-        let bunnyColorsBuffer = null;
-        let bunnyColorsMemoryID = null;
+        this.bunnyRotateY = 0
+        this.bunnyCenter = new vec3.fromValues(0,0,0)
+        this.bunnyPositionsData = positionsData //convert to typed array
+        this.bunnyPositionsBuffer = null;
+        this.bunnyPositionsMemoryID = null;
+        this.bunnyColorsData = colorsData //convert to typed array
+        this.bunnyColorsBuffer = null;
+        this.bunnyColorsMemoryID = null;
+    }
+    
+    
+    shipStandardAttributes(gl, program) {
+        this.bunnyPositionsBuffer = gl.createBuffer();
+        this.bunnyPositionsMemoryID = gl.getAttribLocation(program, 'aVertexPosition');
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyPositionsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.bunnyPositionsData), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null); // this unbinds the buffer, prevents bugs
+
+        this.bunnyColorsBuffer = gl.createBuffer();
+        this.bunnyColorsMemoryID = gl.getAttribLocation(program, 'aVertexColor');
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyColorsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.bunnyColorsData), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null); // this unbinds the buffer, prevents bugs
+        
+    }
+    
+    
+    
+    getModelTransform() {
+            
+            const modelTransform = mat4.create();
+            mat4.translate(
+                modelTransform,
+                modelTransform,
+                vec3.fromValues(this.bunnyCenter[0], this.bunnyCenter[1], this.bunnyCenter[2])
+            );
+            mat4.rotateY(
+                modelTransform,
+                modelTransform,
+                this.bunnyRotateY,
+            );
+            
+            return modelTransform;
+            
+            
+    }
+        
+    
+    
+    draw(gl) {
+        
+        // Bind the position buffer so gl.drawArrays() draws the whole tent
+            // these lines tell gl.drawArrays() how to get the data out of the buffer
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyPositionsBuffer);
+            gl.vertexAttribPointer(this.bunnyPositionsMemoryID, 3, gl.FLOAT, false, 0, 0 );
+            gl.enableVertexAttribArray(this.bunnyPositionsMemoryID);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+            // and the colors too
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyColorsBuffer);
+            gl.vertexAttribPointer(this.bunnyColorsMemoryID, 3, gl.FLOAT, false, 0, 0 );
+            gl.enableVertexAttribArray(this.bunnyColorsMemoryID);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            
+            gl.drawArrays(gl.TRIANGLES, 0, this.bunnyPositionsData.length/3);
         
     }
 }
