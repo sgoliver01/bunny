@@ -102,6 +102,7 @@ export class EggHunt {
       
         bunny = new TriangleMesh(bunnyVertices, bunnyColorsData, bunnyNormals);
         bunny.shipStandardAttributes(gl, program) 
+      //  bunny.bunnyScale = vec3.fromValues(2,2,2)
         bunny.bunnyCenter[1] = 1;
         
         
@@ -116,7 +117,7 @@ export class EggHunt {
         //make 7 eggs
         for (var i = 0; i < 8; i++) {
             const egg = new TriangleMesh(sphereVertices, eggColorsData, sphereNormals);
-            egg.bunnyScale = vec3.fromValues(.1,.4,.1)
+            egg.bunnyScale = vec3.fromValues(.1,1,.1)
             egg.bunnyCenter = vec3.fromValues(Math.random(), .5, Math.random())
             eggs.push(egg)
         }
@@ -254,7 +255,10 @@ export class EggHunt {
         }
         
         //make the eggs oscillate using sin and performance.now
-        eggs
+        for(var i = 0; i < eggs.length; i++) {
+            eggs[i].bunnyCenter[1] = Math.sin(performance.now())/200
+       
+         }
         
     }
     
@@ -268,8 +272,6 @@ export class EggHunt {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.enable(gl.DEPTH_TEST);
     
-//        // updates (rotating the tent slightly)
-//        tent.tentRotateY += 0.01;
     
         // Now draw the tent:
         // Step 1. Prepare perspective and view matrices
@@ -282,7 +284,7 @@ export class EggHunt {
             1000 // distance to far plane
         );
     
-        // use mat4.lookAt() for the view matrix
+        // use mat4.lookAt() for the view matrix -- SHOULD i HAVE ONE OF THESE FOR EACH OBJ???????????????????????????
         const viewTransform = mat4.create();
         mat4.lookAt(
             viewTransform, // where to store the result
@@ -294,13 +296,18 @@ export class EggHunt {
         // Step 2. Prepare the model matrix
         const modelTransform = square.getModelTransform()
         const bunnyModelTransform = bunny.getModelTransform()
-        
     
-       // const eggsModelTransform = eggs.getModelTransform()
     
         // Step 3. Ship all the transforms
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, modelTransform);
+        square.draw(gl)
+        
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, bunnyModelTransform);
+        bunny.draw(gl)
+        
+             
+        
+
         
         for (var i = 0; i < eggs.length; i++) {
             let egg = eggs[i]
@@ -309,12 +316,11 @@ export class EggHunt {
             egg.draw(gl)
          }
       
-        
-        
+
     
         // Step 4.         
-        square.draw(gl)
-        bunny.draw(gl)
+        
+        
     }
     // need to pass the point, in world coordinates
      // need to pass the normal, after transform, use 0 for w so we don't translate it
@@ -384,10 +390,6 @@ export class EggHunt {
             vec3 t3 = light3 - pt;
             float m3 = dot(t3,n) / (length(n)* length(t3));
 
-            
-//            vec3 m1_color = (.2+m1)*color.xyz
-//            vec3 m2_color = (.2+m2)*color.xyz
-//            vec3 m3_color = (.2+m3)*color.xyz
             vec3 final_color = (.2+m1)*color.xyz + (.2+m2)*color.xyz + (.2+m3)*color.xyz;
 
             FragColor = vec4(final_color, 1.0);
@@ -487,7 +489,7 @@ class TriangleMesh {
             mat4.scale(
                 modelTransform,
                 modelTransform,
-                this.bunnyScale
+                this.bunnyScale,
             );
             
             return modelTransform;
@@ -500,26 +502,26 @@ class TriangleMesh {
     draw(gl) {
         
         // Bind the position buffer so gl.drawArrays() draws the whole tent
-            // these lines tell gl.drawArrays() how to get the data out of the buffer
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyPositionsBuffer);
-            gl.vertexAttribPointer(this.bunnyPositionsMemoryID, 3, gl.FLOAT, false, 0, 0 );
-            gl.enableVertexAttribArray(this.bunnyPositionsMemoryID);
-            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        // these lines tell gl.drawArrays() how to get the data out of the buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyPositionsBuffer);
+        gl.vertexAttribPointer(this.bunnyPositionsMemoryID, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray(this.bunnyPositionsMemoryID);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-            // and the colors too
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyColorsBuffer);
-            gl.vertexAttribPointer(this.bunnyColorsMemoryID, 3, gl.FLOAT, false, 0, 0 );
-            gl.enableVertexAttribArray(this.bunnyColorsMemoryID);
-            gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        
-        
+        // and the colors too
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyColorsBuffer);
+        gl.vertexAttribPointer(this.bunnyColorsMemoryID, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray(this.bunnyColorsMemoryID);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
         //normals
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyNormalsBuffer);
         gl.vertexAttribPointer(this.bunnyNormalsMemoryID, 3, gl.FLOAT, false, 0, 0 );
         gl.enableVertexAttribArray(this.bunnyNormalsMemoryID);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
             
-          gl.drawArrays(gl.TRIANGLES, 0, this.bunnyPositionsData.length/3);
+        gl.drawArrays(gl.TRIANGLES, 0, this.bunnyPositionsData.length/3);
         
     }
 }
