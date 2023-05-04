@@ -19,9 +19,9 @@ export class EggHunt {
         this.canvas = canvas;
         this.keyMap = keyMap;
         // global camera variables
-        this.cameraX = 1;
-        this.cameraY = 1;
-        this.cameraZ = 1;
+        this.cameraX = 1.5;
+        this.cameraY = 1.5;
+        this.cameraZ = 1.5;
         // global drawing variables
         
         
@@ -51,6 +51,7 @@ export class EggHunt {
         
         let squarePositionsData = []
         let squareColorsData = []
+        let squareNormals = []
         
         
         //triangle 1
@@ -73,7 +74,12 @@ export class EggHunt {
         
         
         // also push normals, have to do one for each vertex, so should be 6 pushes of 3 vals 
-        const squareNormals = [0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0]
+         squareNormals.push(0,1,0)
+         squareNormals.push(0,1,0)
+         squareNormals.push(0,1,0)
+         squareNormals.push(0,1,0)
+         squareNormals.push(0,1,0)
+         squareNormals.push(0,1,0)
 
         
 
@@ -82,7 +88,7 @@ export class EggHunt {
         
         square = new TriangleMesh(squarePositionsData, squareColorsData, squareNormals);
         square.shipStandardAttributes(gl, program) 
-        square.bunnyCenter[1] = 0.5
+//        square.bunnyCenter[1] = 0.5
         
 //        square.bunnyNormalsBuffer = gl.createBuffer();
 //        square.bunnyNormalsMemoryID = gl.getAttribLocation(program, 'aVertexNormal');
@@ -103,7 +109,7 @@ export class EggHunt {
         bunny = new TriangleMesh(bunnyVertices, bunnyColorsData, bunnyNormals);
         bunny.shipStandardAttributes(gl, program) 
       //  bunny.bunnyScale = vec3.fromValues(2,2,2)
-        bunny.bunnyCenter[1] = 1;
+        bunny.bunnyCenter[1] = .5;
         
         
         const shadowColorsData = []
@@ -117,16 +123,20 @@ export class EggHunt {
         //make 7 eggs
         for (var i = 0; i < 8; i++) {
             const egg = new TriangleMesh(sphereVertices, eggColorsData, sphereNormals);
-            egg.bunnyScale = vec3.fromValues(.1,1,.1)
-            egg.bunnyCenter = vec3.fromValues(Math.random(), .5, Math.random())
+            
+            egg.shipStandardAttributes(gl, program) 
+            egg.bunnyCenter = vec3.fromValues((Math.random()*20)-10, 10, (Math.random()*20)-10)
+            
+            egg.bunnyScale = vec3.fromValues(.1,.3,.1)
+            
             eggs.push(egg)
         }
         
         //ship all eggs
-         for(var i = 0; i < eggs.length; i++) {
-          eggs[i].shipStandardAttributes(gl, program) 
-       
-         }
+//         for(var i = 0; i < eggs.length; i++) {
+//          eggs[i].shipStandardAttributes(gl, program) 
+//       
+//         }
       
     
     }
@@ -166,83 +176,83 @@ export class EggHunt {
         
          if (this.keyMap['w']) {
             // move the camera up
-            this.cameraX += 0.25*bunnyFacing[0];
-            this.cameraZ += 0.25*bunnyFacing[2];
+            this.cameraX += 0.15*bunnyFacing[0];
+            this.cameraZ += 0.15*bunnyFacing[2];
              
-            bunny.bunnyCenter[0] += 0.25*bunnyFacing[0]
-            bunny.bunnyCenter[2] += 0.25*bunnyFacing[2]
+            bunny.bunnyCenter[0] += 0.15*bunnyFacing[0]
+            bunny.bunnyCenter[2] += 0.15*bunnyFacing[2]
              
             if (bunny.bunnyCenter[0] < corner1[0]) {        //x < -10
-                 bunny.bunnyCenter[0] -= 0.25*bunnyFacing[0]
-                this.cameraX -= 0.25*bunnyFacing[0];
+                 bunny.bunnyCenter[0] -= 0.15*bunnyFacing[0]
+                this.cameraX -= 0.15*bunnyFacing[0];
             }
               if (bunny.bunnyCenter[2] < corner1[2]) {     // z < -10
-                 bunny.bunnyCenter[2] -= 0.25*bunnyFacing[2]
-                this.cameraZ -= 0.25*bunnyFacing[2];
+                 bunny.bunnyCenter[2] -= 0.15*bunnyFacing[2]
+                this.cameraZ -= 0.15*bunnyFacing[2];
             }
              
              if (bunny.bunnyCenter[0] > corner2[0]) {        //x > 10
-                 bunny.bunnyCenter[0] -= 0.25*bunnyFacing[0]
-                this.cameraX -= 0.25*bunnyFacing[0];
+                 bunny.bunnyCenter[0] -= 0.15*bunnyFacing[0]
+                this.cameraX -= 0.15*bunnyFacing[0];
             }
               if (bunny.bunnyCenter[2] > corner2[2]) {     // z > 10
-                 bunny.bunnyCenter[2] -= 0.25*bunnyFacing[2]
-                this.cameraZ -= 0.25*bunnyFacing[2];
+                 bunny.bunnyCenter[2] -= 0.15*bunnyFacing[2]
+                this.cameraZ -= 0.15*bunnyFacing[2];
             }
                
              
         }
         else if (this.keyMap['s']) {
             // move the camera down
-            this.cameraX -= 0.25*bunnyFacing[0];
-            this.cameraZ -= 0.25*bunnyFacing[2];
-            console.log(bunny.bunnyCenter[0], bunny.bunnyCenter[2])
+            this.cameraX -= 0.15*bunnyFacing[0];
+            this.cameraZ -= 0.15*bunnyFacing[2];
+          
             
-            bunny.bunnyCenter[0] -= 0.25*bunnyFacing[0]
-            bunny.bunnyCenter[2] -= 0.25*bunnyFacing[2]
+            bunny.bunnyCenter[0] -= 0.15*bunnyFacing[0]
+            bunny.bunnyCenter[2] -= 0.15*bunnyFacing[2]
             
             
             if (bunny.bunnyCenter[0] > corner3[0]) {            //x > 10
-                 bunny.bunnyCenter[0] += 0.25*bunnyFacing[0]
-                this.cameraX += 0.25*bunnyFacing[0];
+                 bunny.bunnyCenter[0] += 0.15*bunnyFacing[0]
+                this.cameraX += 0.15*bunnyFacing[0];
             }
             
              if (bunny.bunnyCenter[2] > corner2[2]) {           //z > 10
-                 bunny.bunnyCenter[2] += 0.25*bunnyFacing[2]
-                this.cameraZ += 0.25*bunnyFacing[2];
+                 bunny.bunnyCenter[2] += 0.15*bunnyFacing[2]
+                this.cameraZ += 0.15*bunnyFacing[2];
             }
              if (bunny.bunnyCenter[0] < corner1[0]) {        //x < -10
-                 bunny.bunnyCenter[0] += 0.25*bunnyFacing[0]
-                this.cameraX += 0.25*bunnyFacing[0];
+                 bunny.bunnyCenter[0] += 0.15*bunnyFacing[0]
+                this.cameraX += 0.15*bunnyFacing[0];
             }
               if (bunny.bunnyCenter[2] < corner1[2]) {     // z < -10
-                 bunny.bunnyCenter[2] += 0.25*bunnyFacing[2]
-                this.cameraZ += 0.25*bunnyFacing[2];
+                 bunny.bunnyCenter[2] += 0.15*bunnyFacing[2]
+                this.cameraZ += 0.15*bunnyFacing[2];
             }
             
              
         }
         else if (this.keyMap['a']) {
             // moving camera left
-           bunny.bunnyRotate[1] += .25
+           bunny.bunnyRotate[1] += .15
             
             vec3.rotateY(
                     bunnyFacing,
                     bunnyFacing,
                     vec3.fromValues(0,1,0),
-                    0.25
+                    0.15
                 );
         }
         else if (this.keyMap['d']) {
             // moving camera right
-             bunny.bunnyRotate[1] -= .25
+             bunny.bunnyRotate[1] -= .15
              
             
             vec3.rotateY(
                     bunnyFacing,
                     bunnyFacing,
                     vec3.fromValues(0,1,0),
-                    -0.25
+                    -0.15
                 );
         }
         else if (this.keyMap['i']) {
