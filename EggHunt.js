@@ -1,8 +1,7 @@
 import { mat4, vec4, vec3 } from 'https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/+esm'
 import { sphereVertices, sphereNormals } from "./Sphere180t540n.js";
 
-
-import {bunnyVertices, bunnyNormals} from "./Bunny250t750n.js"
+import {bunnyVertices, bunnyNormals} from "./Bunny250t750n.js";
 // can download as glMatrix.js for offline use if needed
 
 
@@ -11,6 +10,8 @@ let program;
 let square;
 let bunny;
 let bunnyFacing = vec3.fromValues(-1,0,0)
+let corner1, corner2, corner3, corner4
+let eggs = []
 
 export class EggHunt {
     constructor(canvas, keyMap) {
@@ -42,10 +43,10 @@ export class EggHunt {
   
         
         //Step 4: create square data
-        const corner1 = [-10, 0, -10]
-        const corner2 = [10,0, 10]
-        const corner3 = [10, 0, -10]
-        const corner4 = [-10, 0, 10]
+        corner1 = [-10, 0, -10]
+        corner2 = [10,0, 10]
+        corner3 = [10, 0, -10]
+        corner4 = [-10, 0, 10]
             
         
         let squarePositionsData = []
@@ -104,13 +105,27 @@ export class EggHunt {
         bunny.bunnyCenter[1] = 1;
         
         
-        const eggsColorsData = []
         const shadowColorsData = []
+        const eggColorsData = []
         
-        
-        for (let i = 0; i < sphereVertices.length/3; i++) {
-            shadowColorsData.push(0,0,0);
+        for(var i = 0; i < sphereVertices.length; i+=3) {
+            eggColorsData.push(1,.3,1)
+            shadowColorsData.push(0,0,0)
         }
+        
+        //make 7 eggs
+        for (var i = 0; i < 8; i++) {
+            const egg = new TriangleMesh(sphereVertices, eggColorsData, sphereNormals);
+            egg.bunnyScale = vec3.fromValues(.1,.4,.1)
+            egg.bunnyCenter = vec3.fromValues(Math.random(), .5, Math.random())
+            eggs.push(egg)
+        }
+        
+        //ship all eggs
+         for(var i = 0; i < eggs.length; i++) {
+          eggs[i].shipStandardAttributes(gl, program) 
+       
+         }
       
     
     }
@@ -156,14 +171,55 @@ export class EggHunt {
             bunny.bunnyCenter[0] += 0.25*bunnyFacing[0]
             bunny.bunnyCenter[2] += 0.25*bunnyFacing[2]
              
+            if (bunny.bunnyCenter[0] < corner1[0]) {        //x < -10
+                 bunny.bunnyCenter[0] -= 0.25*bunnyFacing[0]
+                this.cameraX -= 0.25*bunnyFacing[0];
+            }
+              if (bunny.bunnyCenter[2] < corner1[2]) {     // z < -10
+                 bunny.bunnyCenter[2] -= 0.25*bunnyFacing[2]
+                this.cameraZ -= 0.25*bunnyFacing[2];
+            }
+             
+             if (bunny.bunnyCenter[0] > corner2[0]) {        //x > 10
+                 bunny.bunnyCenter[0] -= 0.25*bunnyFacing[0]
+                this.cameraX -= 0.25*bunnyFacing[0];
+            }
+              if (bunny.bunnyCenter[2] > corner2[2]) {     // z > 10
+                 bunny.bunnyCenter[2] -= 0.25*bunnyFacing[2]
+                this.cameraZ -= 0.25*bunnyFacing[2];
+            }
+               
+             
         }
         else if (this.keyMap['s']) {
             // move the camera down
             this.cameraX -= 0.25*bunnyFacing[0];
             this.cameraZ -= 0.25*bunnyFacing[2];
+            console.log(bunny.bunnyCenter[0], bunny.bunnyCenter[2])
             
             bunny.bunnyCenter[0] -= 0.25*bunnyFacing[0]
             bunny.bunnyCenter[2] -= 0.25*bunnyFacing[2]
+            
+            
+            if (bunny.bunnyCenter[0] > corner3[0]) {            //x > 10
+                 bunny.bunnyCenter[0] += 0.25*bunnyFacing[0]
+                this.cameraX += 0.25*bunnyFacing[0];
+            }
+            
+             if (bunny.bunnyCenter[2] > corner2[2]) {           //z > 10
+                 bunny.bunnyCenter[2] += 0.25*bunnyFacing[2]
+                this.cameraZ += 0.25*bunnyFacing[2];
+            }
+             if (bunny.bunnyCenter[0] < corner1[0]) {        //x < -10
+                 bunny.bunnyCenter[0] += 0.25*bunnyFacing[0]
+                this.cameraX += 0.25*bunnyFacing[0];
+            }
+              if (bunny.bunnyCenter[2] < corner1[2]) {     // z < -10
+                 bunny.bunnyCenter[2] += 0.25*bunnyFacing[2]
+                this.cameraZ += 0.25*bunnyFacing[2];
+            }
+            
+             
         }
         else if (this.keyMap['a']) {
             // moving camera left
@@ -197,7 +253,8 @@ export class EggHunt {
             this.cameraZ += .25;
         }
         
-        
+        //make the eggs oscillate using sin and performance.now
+        eggs
         
     }
     
@@ -237,20 +294,27 @@ export class EggHunt {
         // Step 2. Prepare the model matrix
         const modelTransform = square.getModelTransform()
         const bunnyModelTransform = bunny.getModelTransform()
+        
+    
+       // const eggsModelTransform = eggs.getModelTransform()
     
         // Step 3. Ship all the transforms
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, modelTransform);
-        
-    
-        // Step 4. 
-        
-        square.draw(gl)
-          gl.drawArrays(gl.TRIANGLES, 0, square.bunnyPositionsData.length/3);
-        
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, bunnyModelTransform);
         
+        for (var i = 0; i < eggs.length; i++) {
+            let egg = eggs[i]
+            const eggModelTransform = egg.getModelTransform()
+            this.shipTransform(gl, program, perspectiveTransform, viewTransform, eggModelTransform);
+            egg.draw(gl)
+         }
+      
+        
+        
+    
+        // Step 4.         
+        square.draw(gl)
         bunny.draw(gl)
-            gl.drawArrays(gl.TRIANGLES, 0, bunny.bunnyPositionsData.length/3);
     }
     // need to pass the point, in world coordinates
      // need to pass the normal, after transform, use 0 for w so we don't translate it
@@ -364,7 +428,7 @@ export class EggHunt {
 
 class TriangleMesh {
     constructor(positionsData, colorsData, normalsData) {
-        
+        this.bunnyScale = vec3.fromValues(1,1,1)
         this.bunnyRotate = vec3.fromValues(0,0,0)
         this.bunnyCenter = vec3.fromValues(0,0,0)
         this.bunnyPositionsData = Float32Array.from(positionsData) //convert to typed array
@@ -419,6 +483,12 @@ class TriangleMesh {
                 modelTransform,
                 this.bunnyRotate[1],
             );
+        
+            mat4.scale(
+                modelTransform,
+                modelTransform,
+                this.bunnyScale
+            );
             
             return modelTransform;
             
@@ -449,7 +519,7 @@ class TriangleMesh {
         gl.enableVertexAttribArray(this.bunnyNormalsMemoryID);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
             
-          
+          gl.drawArrays(gl.TRIANGLES, 0, this.bunnyPositionsData.length/3);
         
     }
 }
