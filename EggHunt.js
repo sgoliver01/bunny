@@ -7,6 +7,7 @@ import {bunnyVertices, bunnyNormals} from "./Bunny250t750n.js"
 let gl;
 let program;
 let square;
+let bunny;
 
 export class EggHunt {
     constructor(canvas, keyMap) {
@@ -97,10 +98,10 @@ export class EggHunt {
             bunnyColorsData.push(1,1,0)
         }
         
-        
-        const bunny = new TriangleMesh(bunnyVertices, bunnyColorsData, bunnyNormals);
+      
+         bunny = new TriangleMesh(bunnyVertices, bunnyColorsData, bunnyNormals);
          bunny.shipStandardAttributes(gl, program) 
-       // bunny.bunnyCenter[2] = 0
+        bunny.bunnyCenter[2] = -10
         
         
       
@@ -142,7 +143,9 @@ export class EggHunt {
         
          if (this.keyMap['w']) {
             // move the camera up
-            this.cameraY += .25;
+            //this.cameraY += .25;
+             console.log("hi")
+            bunny.bunnyCenter[0] += 1
         }
         else if (this.keyMap['s']) {
             // move the camera down
@@ -204,6 +207,7 @@ export class EggHunt {
     
         // Step 2. Prepare the model matrix
         const modelTransform = square.getModelTransform()
+      //  const bunnyModelTransform = bunny.getModelTransform()
     
         // Step 3. Ship all the transforms
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, modelTransform);
@@ -211,7 +215,9 @@ export class EggHunt {
         // Step 4. 
         
         square.draw(gl)
-          
+          gl.drawArrays(gl.TRIANGLES, 0, square.bunnyPositionsData.length/3);
+        bunny.draw(gl)
+            gl.drawArrays(gl.TRIANGLES, 0, bunny.bunnyPositionsData.length/3);
     }
     // need to pass the point, in world coordinates
      // need to pass the normal, after transform, use 0 for w so we don't translate it
@@ -336,7 +342,10 @@ class TriangleMesh {
         this.bunnyNormalsData = Float32Array.from(normalsData);
         this.bunnyNormalsBuffer = null;
         this.bunnyNormalsMemoryID = null;
+        
     }
+    
+    
     
     
     shipStandardAttributes(gl, program) {
@@ -406,7 +415,7 @@ class TriangleMesh {
         gl.enableVertexAttribArray(this.bunnyNormalsMemoryID);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
             
-            gl.drawArrays(gl.TRIANGLES, 0, this.bunnyPositionsData.length/3);
+          
         
     }
 }
