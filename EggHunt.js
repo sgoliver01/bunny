@@ -12,6 +12,7 @@ let bunny;
 let bunnyFacing = vec3.fromValues(-1,0,0)
 let corner1, corner2, corner3, corner4
 let eggs = []
+let shadows = []
 
 export class EggHunt {
     constructor(canvas, keyMap) {
@@ -120,23 +121,34 @@ export class EggHunt {
             shadowColorsData.push(0,0,0)
         }
         
-        //make 7 eggs
+        //make 7 eggs and 7 shadows
         for (var i = 0; i < 8; i++) {
-            const egg = new TriangleMesh(sphereVertices, eggColorsData, sphereNormals);
             
-            egg.shipStandardAttributes(gl, program) 
-            egg.bunnyCenter = vec3.fromValues((Math.random()*20)-10, 10, (Math.random()*20)-10)
+            const egg = new TriangleMesh(sphereVertices, eggColorsData, sphereNormals); 
+            const shadow = new TriangleMesh(sphereVertices, shadowColorsData, sphereNormals);
             
-            egg.bunnyScale = vec3.fromValues(.1,.3,.1)
+            
+//            egg.shipStandardAttributes(gl, program) 
+//            shadow.shipStandardAttributes(gl, program) 
+            
+            egg.bunnyCenter = vec3.fromValues((Math.random()*20)-10, .5, (Math.random()*20)-10)
+            
+            shadow.bunnyCenter = vec3.fromValues(egg.bunnyCenter[0], 0.0001, egg.bunnyCenter[2])
+            
+            egg.bunnyScale = vec3.fromValues(.1,.4,.1)
+            shadow.bunnyScale = vec3.fromValues(egg.bunnyScale[0], shadow.bunnyCenter[1], egg.bunnyScale[2])
             
             eggs.push(egg)
+            shadows.push(shadow)
         }
         
-        //ship all eggs
-//         for(var i = 0; i < eggs.length; i++) {
-//          eggs[i].shipStandardAttributes(gl, program) 
-//       
-//         }
+        //ship all eggs and shadows 
+         for(var i = 0; i < eggs.length; i++) {
+            eggs[i].shipStandardAttributes(gl, program)
+            shadows[i].shipStandardAttributes(gl, program) 
+             
+       
+         }
       
     
     }
@@ -266,7 +278,7 @@ export class EggHunt {
         
         //make the eggs oscillate using sin and performance.now
         for(var i = 0; i < eggs.length; i++) {
-            eggs[i].bunnyCenter[1] = Math.sin(performance.now())/200
+            eggs[i].bunnyCenter[1] = eggs[i].bunnyCenter[1]+  0.02*Math.sin(performance.now()/400)
        
          }
         
@@ -321,9 +333,16 @@ export class EggHunt {
         
         for (var i = 0; i < eggs.length; i++) {
             let egg = eggs[i]
+            let shadow = shadows[i]
+            
             const eggModelTransform = egg.getModelTransform()
-            this.shipTransform(gl, program, perspectiveTransform, viewTransform, eggModelTransform);
+            const shadowModelTransform = shadow.getModelTransform()
+            
+            this.shipTransform(gl, program, perspectiveTransform, viewTransform, eggModelTransform)
             egg.draw(gl)
+            
+           this.shipTransform(gl, program, perspectiveTransform, viewTransform, shadowModelTransform)
+            shadow.draw(gl)
          }
       
 
