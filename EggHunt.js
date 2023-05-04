@@ -1,8 +1,12 @@
 import { mat4, vec4, vec3 } from 'https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/+esm'
+
+import {bunnyVertices, bunnyNormals} from "./Bunny250t750n.js"
 // can download as glMatrix.js for offline use if needed
+
 
 let gl;
 let program;
+let square;
 
 export class EggHunt {
     constructor(canvas, keyMap) {
@@ -13,37 +17,10 @@ export class EggHunt {
         this.cameraX = 0;
         this.cameraY = .5;
         this.cameraZ = -5;
-        
-        
-        
-        
-        
-        
-        
         // global drawing variables
-      
-    
-    }
-    
-    
-    
-    mainLoop() {
         
-        // Compute the FPS
-        // First get #milliseconds since previous draw
-        const elapsed = performance.now() - this.prevDraw;
+        
 
-        if (elapsed < 1000/60) {
-            return;
-        }
-        // 1000 seconds = elapsed * fps. So fps = 1000/elapsed
-        const fps = 1000 / elapsed;
-        // Write the FPS in a <p> element.
-        document.getElementById('fps').innerHTML = fps;
-        
-        
-        let square;
-        
         //Step 1: initialize canvas
       //  this.canvas = document.getElementById('demo');
         this.canvas.width = 640;
@@ -65,7 +42,11 @@ export class EggHunt {
         const corner2 = [10,0, 10]
         const corner3 = [10, 0, -10]
         const corner4 = [-10, 0, 10]
-    
+        
+        
+//        const squarePositionsData = [corner1[0], corner1[1], corner1[2], corner2[0], corner2[1], corner2[2], corner3[0], corner3[1], corner3[2], corner4[0], corner4[1], corner4[2]]
+//        const squareColorsData = [0,1,0,0,1,0,0,1,0,0,1,0]
+        
         
         let squarePositionsData = []
         let squareColorsData = []
@@ -91,26 +72,15 @@ export class EggHunt {
         
         
         // also push normals, have to do one for each vertex, so should be 6 pushes of 3 vals 
-        
-        
-//        
-//        let squareNormals = []
-//        //triangle 1 
-//        // first vertex faces out
-//        squareNormals.push(Math.cos(theta), 0, Math.sin(theta));
-//        // second vertex faces up
-//        squareNormals.push(0, 1, 0);
-//        // third vertex faces out
-//        squareNormals.push(Math.cos(thetaNext), 0, Math.sin(thetaNext));
-        
+        const squareNormals = [0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0]
 
-        const squareNormalsData = [0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0];
+
         
         // Step 4b. Ship the data
         
-        square = new TriangleMesh(squarePositionsData,squareNormalsData, squareColorsData); 
+        square = new TriangleMesh(squarePositionsData, squareColorsData, squareNormals);
         square.shipStandardAttributes(gl, program) 
-//        square.bunnyCenter[2] = -10
+        square.bunnyCenter[2] = -10
         
 //        square.bunnyNormalsBuffer = gl.createBuffer();
 //        square.bunnyNormalsMemoryID = gl.getAttribLocation(program, 'aVertexNormal');
@@ -120,10 +90,44 @@ export class EggHunt {
 //        
 //        
         
+        
+        //pass the bunny - first find colors for each vertex
+        const bunnyColorsData = []
+        for(var i = 0; i < bunnyVertices.length; i+=3) {
+            bunnyColorsData.push(1,1,0)
+        }
+        
+        
+        const bunny = new TriangleMesh(bunnyVertices, bunnyColorsData, bunnyNormals);
+         bunny.shipStandardAttributes(gl, program) 
+       // bunny.bunnyCenter[2] = 0
+        
+        
+      
+    
+    }
+    
+    
+    
+    mainLoop() {
+        
+        // Compute the FPS
+        // First get #milliseconds since previous draw
+        const elapsed = performance.now() - this.prevDraw;
+
+        if (elapsed < 1000/60) {
+            return;
+        }
+        // 1000 seconds = elapsed * fps. So fps = 1000/elapsed
+        const fps = 1000 / elapsed;
+        // Write the FPS in a <p> element.
+        document.getElementById('fps').innerHTML = fps;
+        
+        
         this.update();
         
         // Step 5. call draw() repeatedly
-        setInterval(this.draw(square), 0);
+        setInterval(this.draw(), 0);
 
         
 
@@ -160,10 +164,12 @@ export class EggHunt {
             // moving camera backward
             this.cameraZ += .25;
         }
- 
+        
+        
+        
     }
     
-    draw(square) {
+    draw() {
         
 //        document.getElementById('cameraPos').innerHTML = `Camera (${this.cameraX},${this.cameraY},${this.cameraZ})`;
     
@@ -227,16 +233,16 @@ export class EggHunt {
         out vec3 eye;
         out vec3 n;
         void main(void) {
+             mat4 inverseModelMatrix = transpose(inverse(uModelTransform));
+            
 
             color = aVertexColor;
             
-            pt = vec3(uModelTransform * vec4(aVertexPosition, 1.0));
-            
-            mat4 inverseModelMatrix = transpose(inverse(uModelTransform));
-            n = vec3(inverseModelMatrix * vec4(aVertexNormal, 0.0));
+            pt = vec3(uModelTransform * vec4(aVertexPosition, 1.0)); 
+            n = vec3(uModelTransform * vec4(aVertexNormal, 0.0));
 
 
-            eye = vec3(uViewTransform * vec4(0.0, 0.0, 0.0, 1.0));
+            eye = -vec3(uViewTransform * vec4(0.0, 0.0, 0.0, 1.0));
 
 
             vec4 homogenized = vec4(aVertexPosition, 1.0);
@@ -261,26 +267,25 @@ export class EggHunt {
         in vec3 pt;
         in vec3 eye;
         void main(void) {
-            vec3 light1 = vec3(-3.0, 1.5, 3.0);
+            
+            vec3 light1 = vec3(0.0, 1.5, 0.0);
             vec3 t1 = light1 - pt;
             float m1 = dot(t1,n) / (length(n)* length(t1));
-            if (m1 < 0.0) { m1 = 0.0; }
 
-
-            vec3 light2 = vec3(0.0, 1.5, 0.0);
+            vec3 light2 = vec3(1.0, 1.5, 0.0);
             vec3 t2 = light2 - pt;
             float m2 = dot(t2,n) / (length(n)* length(t2));
-            if (m2 < 0.0) { m2 = 0.0; }
 
-            vec3 light3 = vec3(3.0, 1.5, 3.0);
+
+            vec3 light3 = vec3(2.0, 1.5, 1.0);
             vec3 t3 = light3 - pt;
             float m3 = dot(t3,n) / (length(n)* length(t3));
-            if (m3 < 0.0) { m3 = 0.0; }
-            
 
-            vec3 final_color = (.2+m1)*color.xyz +
-                               (.2+m2)*color.xyz + 
-                               (.2+m3)*color.xyz;
+            
+//            vec3 m1_color = (.2+m1)*color.xyz
+//            vec3 m2_color = (.2+m2)*color.xyz
+//            vec3 m3_color = (.2+m3)*color.xyz
+            vec3 final_color = (.2+m1)*color.xyz + (.2+m2)*color.xyz + (.2+m3)*color.xyz;
 
             FragColor = vec4(final_color, 1.0);
         }
@@ -319,22 +324,22 @@ export class EggHunt {
 }
 
 class TriangleMesh {
-    constructor(positionsData, colorsData) {
+    constructor(positionsData, colorsData, normalsData) {
         this.bunnyRotateY = 0
-        this.bunnyCenter = new vec3.fromValues(0,0,0)
-        this.bunnyPositionsData = positionsData //convert to typed array
+        this.bunnyCenter = vec3.fromValues(0,0,0)
+        this.bunnyPositionsData = Float32Array.from(positionsData) //convert to typed array
         this.bunnyPositionsBuffer = null;
         this.bunnyPositionsMemoryID = null;
-        this.bunnyColorsData = colorsData //convert to typed array
+        this.bunnyColorsData = Float32Array.from(colorsData) //convert to typed array
         this.bunnyColorsBuffer = null;
         this.bunnyColorsMemoryID = null;
-//        this.bunnyNormals = [];
-//        this.bunnyNormalsBuffer = null;
-//        this.bunnyNormalsMemoryID = null;
+        this.bunnyNormalsData = Float32Array.from(normalsData);
+        this.bunnyNormalsBuffer = null;
+        this.bunnyNormalsMemoryID = null;
     }
     
     
-    shipStandardAttributes(gl, program, n) {
+    shipStandardAttributes(gl, program) {
         this.bunnyPositionsBuffer = gl.createBuffer();
         this.bunnyPositionsMemoryID = gl.getAttribLocation(program, 'aVertexPosition');
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyPositionsBuffer);
@@ -345,6 +350,13 @@ class TriangleMesh {
         this.bunnyColorsMemoryID = gl.getAttribLocation(program, 'aVertexColor');
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyColorsBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.bunnyColorsData), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null); // this unbinds the buffer, prevents bugs
+        
+        
+        this.bunnyNormalsBuffer = gl.createBuffer();
+        this.bunnyNormalsMemoryID = gl.getAttribLocation(program, 'aVertexNormal');
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyNormalsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this.bunnyNormalsData, gl.STATIC_DRAW);
         gl.bindBuffer(gl.ARRAY_BUFFER, null); // this unbinds the buffer, prevents bugs
         
     }
@@ -386,6 +398,13 @@ class TriangleMesh {
             gl.vertexAttribPointer(this.bunnyColorsMemoryID, 3, gl.FLOAT, false, 0, 0 );
             gl.enableVertexAttribArray(this.bunnyColorsMemoryID);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        
+        
+        //normals
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bunnyNormalsBuffer);
+        gl.vertexAttribPointer(this.bunnyNormalsMemoryID, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray(this.bunnyNormalsMemoryID);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
             
             gl.drawArrays(gl.TRIANGLES, 0, this.bunnyPositionsData.length/3);
         
