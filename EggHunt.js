@@ -21,11 +21,10 @@ export class EggHunt {
         this.canvas = canvas;
         this.keyMap = keyMap;
         // global camera variables
-        this.cameraX = 1.5;
-        this.cameraY = 1.5;
-        this.cameraZ = 1.5;
+        this.cameraX = 2;
+        this.cameraY = 2;
+        this.cameraZ = 2;
         // global drawing variables
-        
         
 
         //Step 1: initialize canvas
@@ -90,7 +89,7 @@ export class EggHunt {
         
         square = new TriangleMesh(squarePositionsData, squareColorsData, squareNormals);
         square.shipStandardAttributes(gl, program) 
-//        square.bunnyCenter[1] = 0.5
+
         
 //        square.bunnyNormalsBuffer = gl.createBuffer();
 //        square.bunnyNormalsMemoryID = gl.getAttribLocation(program, 'aVertexNormal');
@@ -122,7 +121,7 @@ export class EggHunt {
         }
         
         //make 7 eggs and 7 shadows
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < 7; i++) {
             
             const egg = new TriangleMesh(sphereVertices, eggColorsData, sphereNormals); 
             const shadow = new TriangleMesh(sphereVertices, shadowColorsData, sphereNormals);
@@ -182,7 +181,7 @@ export class EggHunt {
     
     update() {
         
-        console.log(eggsPickedUp)
+        console.log("eggs picked up: ", eggsPickedUp)
         
          if (this.keyMap['w']) {
             // move the camera up
@@ -321,7 +320,7 @@ export class EggHunt {
             1000 // distance to far plane
         );
     
-        // use mat4.lookAt() for the view matrix -- SHOULD i HAVE ONE OF THESE FOR EACH OBJ???????????????????????????
+        // use mat4.lookAt() for the view matrix 
         const viewTransform = mat4.create();
         mat4.lookAt(
             viewTransform, // where to store the result
@@ -329,6 +328,7 @@ export class EggHunt {
             vec3.fromValues(bunny.bunnyCenter[0], bunny.bunnyCenter[1], bunny.bunnyCenter[2]), // camera target
             vec3.fromValues(0, 1, 0), // up vector
         );
+        
     
         // Step 2. Prepare the model matrix
         const modelTransform = square.getModelTransform()
@@ -361,14 +361,13 @@ export class EggHunt {
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, bunnyModelTransform);
         bunny.draw(gl)
         
-             
-        
+ 
 
         
         for (var i = 0; i < eggs.length; i++) {
             
             
-            let egg = eggs[i]
+            let egg = eggs[i] 
             let shadow = shadows[i]
             
              if (egg.eggActive == false) {
@@ -387,7 +386,7 @@ export class EggHunt {
       
 
     
-        // Step 4.         
+    
         
         
     }
@@ -455,7 +454,7 @@ export class EggHunt {
             float m2 = dot(t2,n) / (length(n)* length(t2));
 
 
-            vec3 light3 = vec3(2.0, 1.5, 1.0);
+            vec3 light3 = vec3(-2.0, 1.5, -1.0);
             vec3 t3 = light3 - pt;
             float m3 = dot(t3,n) / (length(n)* length(t3));
 
