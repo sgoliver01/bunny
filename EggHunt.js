@@ -1,4 +1,4 @@
-import { mat4, vec4, vec3 } from 'https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/+esm'
+import { mat4, vec4, vec3, vec2 } from 'https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/+esm'
 import { sphereVertices, sphereNormals } from "./Sphere180t540n.js";
 
 import {bunnyVertices, bunnyNormals} from "./Bunny250t750n.js";
@@ -13,6 +13,7 @@ let bunnyFacing = vec3.fromValues(-1,0,0)
 let corner1, corner2, corner3, corner4
 let eggs = []
 let shadows = []
+let eggsPickedUp = 0
 
 export class EggHunt {
     constructor(canvas, keyMap) {
@@ -109,7 +110,6 @@ export class EggHunt {
       
         bunny = new TriangleMesh(bunnyVertices, bunnyColorsData, bunnyNormals);
         bunny.shipStandardAttributes(gl, program) 
-      //  bunny.bunnyScale = vec3.fromValues(2,2,2)
         bunny.bunnyCenter[1] = .5;
         
         
@@ -128,8 +128,6 @@ export class EggHunt {
             const shadow = new TriangleMesh(sphereVertices, shadowColorsData, sphereNormals);
             
             
-//            egg.shipStandardAttributes(gl, program) 
-//            shadow.shipStandardAttributes(gl, program) 
             
             egg.bunnyCenter = vec3.fromValues((Math.random()*20)-10, .5, (Math.random()*20)-10)
             
@@ -175,9 +173,7 @@ export class EggHunt {
         // Step 5. call draw() repeatedly
         this.draw();
 
-        
 
- 
         // Save the value of performance.now() for FPS calculation
         this.prevDraw = performance.now();
         
@@ -185,6 +181,8 @@ export class EggHunt {
     
     
     update() {
+        
+        console.log(eggsPickedUp)
         
          if (this.keyMap['w']) {
             // move the camera up
@@ -279,8 +277,25 @@ export class EggHunt {
         //make the eggs oscillate using sin and performance.now
         for(var i = 0; i < eggs.length; i++) {
             eggs[i].bunnyCenter[1] = eggs[i].bunnyCenter[1]+  0.02*Math.sin(performance.now()/400)
+            
+            if (eggs[i].eggActive){
+                
+                let bunny2D = vec2.fromValues(bunny.bunnyCenter[0], bunny.bunnyCenter[2])
+                
+                let egg2D = vec2.fromValues(eggs[i].bunnyCenter[0], eggs[i].bunnyCenter[2])
+                
+                let overlap = vec2.distance(bunny2D, egg2D)
+                
+                if (overlap < 1){
+                    eggs[i].eggActive = false
+                    eggsPickedUp +=1
+                    
+                }
+            }
        
          }
+        
+       
         
     }
     
@@ -324,6 +339,25 @@ export class EggHunt {
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, modelTransform);
         square.draw(gl)
         
+        
+        
+        
+        if (eggsPickedUp>6){
+            let BunnyColorDataChanged = []
+            for(var i = 0; i < bunnyVertices.length; i+=3) {
+            BunnyColorDataChanged.push(.5,.25,.75)
+            }
+            
+            bunny.bunnyColorsData = Float32Array.from(BunnyColorDataChanged)
+            bunny.bunnyColorsBuffer = null;
+            bunny.bunnyColorsMemoryID = null;
+            
+            bunny.shipStandardAttributes(gl,program)
+        }
+        
+        
+        
+        
         this.shipTransform(gl, program, perspectiveTransform, viewTransform, bunnyModelTransform);
         bunny.draw(gl)
         
@@ -332,8 +366,14 @@ export class EggHunt {
 
         
         for (var i = 0; i < eggs.length; i++) {
+            
+            
             let egg = eggs[i]
             let shadow = shadows[i]
+            
+             if (egg.eggActive == false) {
+                    continue
+            }
             
             const eggModelTransform = egg.getModelTransform()
             const shadowModelTransform = shadow.getModelTransform()
@@ -459,6 +499,7 @@ export class EggHunt {
 
 class TriangleMesh {
     constructor(positionsData, colorsData, normalsData) {
+        this.eggActive = true
         this.bunnyScale = vec3.fromValues(1,1,1)
         this.bunnyRotate = vec3.fromValues(0,0,0)
         this.bunnyCenter = vec3.fromValues(0,0,0)
@@ -474,7 +515,7 @@ class TriangleMesh {
         
     }
     
-    
+  
     
     
     shipStandardAttributes(gl, program) {
